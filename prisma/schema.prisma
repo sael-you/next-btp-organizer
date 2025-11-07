@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   @default("PLANNING") // PLANNING, IN_PROGRESS, ON_HOLD, COMPLETED
+  location    String?
+  startDate   DateTime?
+  endDate     DateTime?
+  totalBudget Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  milestones  Milestone[]
+  expenses    Expense[]
+  documents   Document[]
+  budgetItems BudgetItem[]
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  dueDate     DateTime?
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, OVERDUE
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@index([projectId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  milestoneId String
+  name        String
+  description String?
+  status      String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  assignedTo  String?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  projectId   String
+  category    String   // LAND, PERMITS, MATERIALS, LABOUR, UTILITIES, OTHER
+  description String
+  amount      Float
+  currency    String   @default("MAD")
+  date        DateTime @default(now())
+  vendor      String?
+  invoiceNumber String?
+  isPaid      Boolean  @default(false)
+  paidDate    DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([category])
+}
+
+model BudgetItem {
+  id          String   @id @default(cuid())
+  projectId   String
+  category    String   // LAND, PERMITS, MATERIALS, LABOUR, UTILITIES, OTHER
+  description String
+  estimatedAmount Float
+  actualAmount    Float @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  type        String   // CONTRACT, INVOICE, PERMIT, PLAN, OTHER
+  filePath    String   // Path to the uploaded file
+  fileSize    Int?     // Size in bytes
+  mimeType    String?
+  description String?
+  uploadedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
